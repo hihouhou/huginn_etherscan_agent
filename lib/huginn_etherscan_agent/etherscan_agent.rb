@@ -13,6 +13,8 @@ module Agents
 
       `result_limit` is used when you want to limit result per page.
 
+      `real_value` is used for calculating token value with the tokenDecimal applied.
+
       `type` can be tokentx type (you can see api documentation).
       Get a list of "ERC20 - Token Transfer Events" by Address
 
@@ -144,14 +146,18 @@ module Agents
       log "request  status : #{response.code}"
 
       payload = JSON.parse(response.body)
+
+      if interpolated['real_value'] == 'true'
+        payload['result'].each do |tx|
+          log real_value(tx['value'].to_i, tx['tokenDecimal'].to_i)
+          tx['real_value'] = real_value(tx['value'].to_i, tx['tokenDecimal'].to_i)
+        end
+      end
+
       if interpolated['changes_only'] == 'true'
         if payload.to_s != memory['last_status']
           if "#{memory['last_status']}" == ''
             payload['result'].each do |tx|
-              if interpolated['real_value'] == 'true'
-                log real_value(tx['value'].to_i, tx['tokenDecimal'].to_i)
-                tx['real_value'] = real_value(tx['value'].to_i, tx['tokenDecimal'].to_i)
-              end
               create_event payload: tx
             end
           else
