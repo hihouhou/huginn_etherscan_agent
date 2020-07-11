@@ -50,6 +50,7 @@ module Agents
       {
         'wallet_address' => '',
         'changes_only' => 'true',
+        'real_value' => 'true',
         'expected_receive_period_in_days' => '2',
         'result_limit' => '10',
         'token' => '',
@@ -59,6 +60,7 @@ module Agents
 
     form_configurable :wallet_address, type: :string
     form_configurable :changes_only, type: :boolean
+    form_configurable :real_value, type: :boolean
     form_configurable :token, type: :string
     form_configurable :expected_receive_period_in_days, type: :string
     form_configurable :result_limit, type: :string
@@ -67,6 +69,14 @@ module Agents
     def validate_options
       unless options['wallet_address'].present?
         errors.add(:base, "wallet_address is a required field")
+      end
+
+      if options.has_key?('changes_only') && boolify(options['changes_only']).nil?
+        errors.add(:base, "if provided, changes_only must be true or false")
+      end
+
+      if options.has_key?('real_value') && boolify(options['real_value']).nil?
+        errors.add(:base, "if provided, real_value must be true or false")
       end
 
       unless options['token'].present?
@@ -104,6 +114,10 @@ module Agents
 
     private
 
+    def real_value(value, decimal)
+      value / 10.0**decimal
+    end
+
     def fetch
       uri = URI.parse("http://api.etherscan.io/api")
       request = Net::HTTP::Get.new(uri)
@@ -128,13 +142,16 @@ module Agents
       end
       
       log "request  status : #{response.code}"
-      log response.body
 
       payload = JSON.parse(response.body)
       if interpolated['changes_only'] == 'true'
         if payload.to_s != memory['last_status']
           if "#{memory['last_status']}" == ''
             payload['result'].each do |tx|
+              if interpolated['real_value'] == 'true'
+                log real_value(tx['value'].to_i, tx['tokenDecimal'].to_i)
+                tx['real_value'] = real_value(tx['value'].to_i, tx['tokenDecimal'].to_i)
+              end
               create_event payload: tx
             end
           else
