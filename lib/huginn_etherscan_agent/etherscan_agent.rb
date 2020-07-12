@@ -15,6 +15,8 @@ module Agents
 
       `real_value` is used for calculating token value with the tokenDecimal applied.
 
+      `with_confirmations` is used to avoid an event as soon as it increases.
+
       `type` can be tokentx type (you can see api documentation).
       Get a list of "ERC20 - Token Transfer Events" by Address
 
@@ -52,6 +54,7 @@ module Agents
       {
         'wallet_address' => '',
         'changes_only' => 'true',
+        'with_confirmations' => 'false',
         'real_value' => 'true',
         'expected_receive_period_in_days' => '2',
         'result_limit' => '10',
@@ -63,6 +66,7 @@ module Agents
     form_configurable :wallet_address, type: :string
     form_configurable :changes_only, type: :boolean
     form_configurable :real_value, type: :boolean
+    form_configurable :with_confirmations, type: :boolean
     form_configurable :token, type: :string
     form_configurable :expected_receive_period_in_days, type: :string
     form_configurable :result_limit, type: :string
@@ -75,6 +79,10 @@ module Agents
 
       if options.has_key?('changes_only') && boolify(options['changes_only']).nil?
         errors.add(:base, "if provided, changes_only must be true or false")
+      end
+
+      if options.has_key?('with_confirmations') && boolify(options['with_confirmations']).nil?
+        errors.add(:base, "if provided, with_confirmations must be true or false")
       end
 
       if options.has_key?('real_value') && boolify(options['real_value']).nil?
@@ -147,9 +155,14 @@ module Agents
 
       payload = JSON.parse(response.body)
 
+      if interpolated['with_confirmations'] == 'false'
+        payload['result'].each do |tx|
+          tx.delete('confirmations')
+        end
+      end
+
       if interpolated['real_value'] == 'true'
         payload['result'].each do |tx|
-          log real_value(tx['value'].to_i, tx['tokenDecimal'].to_i)
           tx['real_value'] = real_value(tx['value'].to_i, tx['tokenDecimal'].to_i)
         end
       end
@@ -163,7 +176,7 @@ module Agents
           else
             last_status = memory['last_status'].gsub("=>", ": ").gsub(": nil,", ": null,")
             last_status = JSON.parse(last_status)
-            payload.each do |tx|
+            payload['result'].each do |tx|
               found = false
               last_status.each do |txbis|
                 if tx == txbis
