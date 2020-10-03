@@ -17,6 +17,8 @@ module Agents
 
       `with_confirmations` is used to avoid an event as soon as it increases.
 
+      `debug` is used to verbose mode.
+
       `type` can be tokentx type (you can see api documentation).
       Get a list of "ERC20 - Token Transfer Events" by Address
 
@@ -55,6 +57,7 @@ module Agents
         'wallet_address' => '',
         'changes_only' => 'true',
         'with_confirmations' => 'false',
+        'debug' => 'false',
         'real_value' => 'true',
         'expected_receive_period_in_days' => '2',
         'result_limit' => '10',
@@ -67,6 +70,7 @@ module Agents
     form_configurable :changes_only, type: :boolean
     form_configurable :real_value, type: :boolean
     form_configurable :with_confirmations, type: :boolean
+    form_configurable :debug, type: :boolean
     form_configurable :token, type: :string
     form_configurable :expected_receive_period_in_days, type: :string
     form_configurable :result_limit, type: :string
@@ -83,6 +87,10 @@ module Agents
 
       if options.has_key?('with_confirmations') && boolify(options['with_confirmations']).nil?
         errors.add(:base, "if provided, with_confirmations must be true or false")
+      end
+
+      if options.has_key?('debug') && boolify(options['debug']).nil?
+        errors.add(:base, "if provided, debug must be true or false")
       end
 
       if options.has_key?('real_value') && boolify(options['real_value']).nil?
@@ -155,6 +163,10 @@ module Agents
 
       payload = JSON.parse(response.body)
 
+      if interpolated['debug'] == 'true'
+        log payload
+      end
+
       if interpolated['with_confirmations'] == 'false'
         payload['result'].each do |tx|
           tx.delete('confirmations')
@@ -178,13 +190,26 @@ module Agents
             last_status = JSON.parse(last_status)
             payload['result'].each do |tx|
               found = false
-              last_status.each do |txbis|
+              if interpolated['debug'] == 'true'
+                log "tx"
+                log tx
+              end
+              last_status['result'].each do |txbis|
                 if tx == txbis
-                    found = true
+                  found = true
+                end
+                if interpolated['debug'] == 'true'
+                  log "txbis"
+                  log txbis
+                  log "found is #{found}!"
                 end
               end
               if found == false
-                  create_event payload: tx
+                if interpolated['debug'] == 'true'
+                  log "found is #{found}! so event created"
+                  log tx
+                end
+                create_event payload: tx
               end
             end
           end
