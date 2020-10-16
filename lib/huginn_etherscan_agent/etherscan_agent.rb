@@ -111,19 +111,7 @@ module Agents
     end
 
     def working?
-      memory['last_status'].to_i > 0
-
-      return false if recent_error_logs?
-      
-      if options.has_key?('changes_only') && boolify(options['changes_only']).nil?
-        errors.add(:base, "if provided, changes_only must be true or false")
-      end
-
-      if interpolated['expected_receive_period_in_days'].present?
-        return false unless last_receive_at && last_receive_at > interpolated['expected_receive_period_in_days'].to_i.days.ago
-      end
-
-      true
+      event_created_within?(options['expected_receive_period_in_days']) && !recent_error_logs?
     end
 
     def check
