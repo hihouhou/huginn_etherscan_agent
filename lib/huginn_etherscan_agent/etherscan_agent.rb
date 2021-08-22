@@ -29,27 +29,28 @@ module Agents
 
     event_description <<-MD
       Events look like this:
-        {
-          "blockNumber": "XXXXXXXXX",
-          "timeStamp": "XXXXXXXXXX",
-          "hash": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-          "nonce": "XXXXXX",
-          "blockHash": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "from": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "contractAddress": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "to": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "tokenName": "XXX",
-          "tokenSymbol": "XXX",
-          "tokenDecimal": "xx",
-          "transactionIndex": "xx",
-          "gas": "XXXXXX",
-          "gasPrice": "XXXXXX",
-          "gasUsed": "XXXXX",
-          "cumulativeGasUsed": "XXXXXX",
-          "input": "deprecated",
-          "confirmations": "XXXXXX"
-        }
+
+          {
+            "blockNumber": "XXXXXXXXX",
+            "timeStamp": "XXXXXXXXXX",
+            "hash": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            "nonce": "XXXXXX",
+            "blockHash": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "from": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "contractAddress": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "to": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "tokenName": "XXX",
+            "tokenSymbol": "XXX",
+            "tokenDecimal": "xx",
+            "transactionIndex": "xx",
+            "gas": "XXXXXX",
+            "gasPrice": "XXXXXX",
+            "gasUsed": "XXXXX",
+            "cumulativeGasUsed": "XXXXXX",
+            "input": "deprecated",
+            "confirmations": "XXXXXX"
+          }
     MD
 
     def default_options
