@@ -3,11 +3,11 @@ module Agents
     include FormConfigurable
     can_dry_run!
     no_bulk_receive!
-    default_schedule '1h'
+    default_schedule 'every_1h'
 
     description do
       <<-MD
-      The Github notification agent fetches notifications and creates an event by notification.
+      The Etherscan agent checks activity and creates events.
 
       `mark_as_read` is used to post request for mark as read notification.
 
