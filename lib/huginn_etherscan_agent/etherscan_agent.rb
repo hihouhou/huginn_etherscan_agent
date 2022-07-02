@@ -19,8 +19,9 @@ module Agents
 
       `debug` is used to verbose mode.
 
-      `type` can be tokentx type (you can see api documentation).
-      Get a list of "ERC20 - Token Transfer Events" by Address
+      `type` can be tokentx,  balance type (you can see api documentation).
+      Get a list of "ERC20 - Token Transfer Events" by Address for tokentx
+      Get the balance for an Address with balance
 
       `expected_receive_period_in_days` is used to determine if the Agent is working. Set it to the maximum number of days
       that you anticipate passing without this Agent receiving an incoming Event.
@@ -75,9 +76,11 @@ module Agents
     form_configurable :token, type: :string
     form_configurable :expected_receive_period_in_days, type: :string
     form_configurable :result_limit, type: :string
-    form_configurable :type, type: :array, values: ['account']
+    form_configurable :type, type: :array, values: ['tokentx', 'balance']
 
     def validate_options
+      errors.add(:base, "type has invalid value: should be 'tokentx', 'balance'") if interpolated['type'].present? && !%w(tokentx balance).include?(interpolated['type'])
+
       unless options['wallet_address'].present?
         errors.add(:base, "wallet_address is a required field")
       end
@@ -116,21 +119,74 @@ module Agents
     end
 
     def check
-      fetch
+      trigger_action
     end
 
     private
+
+    def log_curl_output(code,body)
+
+      log "request status : #{code}"
+
+      if interpolated['debug'] == 'true'
+        log "body"
+        log body
+      end
+    end
 
     def real_value(value, decimal)
       value / 10.0**decimal
     end
 
-    def fetch
+    def for_balance
       uri = URI.parse("http://api.etherscan.io/api")
       request = Net::HTTP::Get.new(uri)
       request.set_form_data(
         "module" => "account",
-        "action" => "tokentx",
+        "action" => interpolated['type'],
+        "address" => interpolated['wallet_address'],
+        "tag" => "latest",
+        "apikey" => interpolated['token'],
+      )
+      
+      req_options = {
+        use_ssl: uri.scheme == "https",
+      }
+  
+      response = Net::HTTP.start(uri.hostname, uri.port, req_options) do |http|
+        http.request(request)
+      end
+
+      payload = JSON.parse(response.body)
+      log_curl_output(response.code,payload)
+
+      if interpolated['real_value'] == 'true'
+        payload['real_value'] = real_value(payload['result'].to_i, 18)
+      end
+
+      if interpolated['changes_only'] == 'true'
+        if payload.to_s != memory['last_status_balance']
+          if "#{memory['last_status_balance']}" == ''
+            create_event payload: payload
+          else
+            create_event payload: payload
+          end
+          memory['last_status_balance'] = payload.to_s
+        end
+      else
+        create_event payload: payload
+        if payload.to_s != memory['last_status_balance']
+          memory['last_status_balance'] = payload.to_s
+        end
+      end
+    end
+
+    def for_tokentx
+      uri = URI.parse("http://api.etherscan.io/api")
+      request = Net::HTTP::Get.new(uri)
+      request.set_form_data(
+        "module" => "account",
+        "action" => interpolated['type'],
         "address" => interpolated['wallet_address'],
         "startblock" => "0",
         "endblock" => "999999999",
@@ -147,14 +203,9 @@ module Agents
       response = Net::HTTP.start(uri.hostname, uri.port, req_options) do |http|
         http.request(request)
       end
-      
-      log "request  status : #{response.code}"
 
       payload = JSON.parse(response.body)
-
-      if interpolated['debug'] == 'true'
-        log payload
-      end
+      log_curl_output(response.code,payload)
 
       if interpolated['with_confirmations'] == 'false'
         payload['result'].each do |tx|
@@ -209,6 +260,18 @@ module Agents
         if payload.to_s != memory['last_status']
           memory['last_status'] = payload.to_s
         end
+      end
+    end
+
+    def trigger_action
+
+      case interpolated['type']
+      when "tokentx"
+        for_tokentx()
+      when "balance"
+        for_balance()
+      else
+        log "Error: type has an invalid value (#{interpolated['type']})"
       end
     end
   end
